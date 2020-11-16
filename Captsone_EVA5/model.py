@@ -7,7 +7,7 @@ from blocks import _make_resnet_backbone, _make_pretrained_resnet ,_make_scratch
 
 
 class enc(nn.Module):
-    def __init__(self, preload=True, prelaod_pt='D:/ML/EVA/JEDi/Midas/model-f46da743.pt', freeze=True):
+    def __init__(self, preload=True, prelaod_pt='Midas/model-f46da743.pt', freeze=True):
         super(enc, self).__init__()
         resnet101 = _make_pretrained_resnet(use_pretrained=False)
         if preload:
@@ -108,7 +108,7 @@ def _get_seq_block(seqlist):
 
 from model_yolo import *
 from utils_yolo.utils import *
-cfg = 'D:/ML/EVA/JEDI/Captsone_EVA5/cfg_yolo/yolov3-custom.cfg'
+cfg = 'Captsone_EVA5/cfg_yolo/yolov3-custom.cfg'
 Darknet = Darknet(cfg)
 
 import torch.nn as nn
