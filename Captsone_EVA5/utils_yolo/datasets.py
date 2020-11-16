@@ -261,9 +261,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         path = str(Path(path))  # os-agnostic
         assert os.path.isfile(path), 'File not found %s. See %s' % (path, help_url)
         with open(path, 'r') as f:
-            #making changes to accomidate 5 images only for code testing remove the index later
             self.img_files = [x.replace('/', os.sep) for x in f.read().splitlines()  # os-agnostic
-                              if os.path.splitext(x)[-1].lower() in img_formats][:6]
+                              if os.path.splitext(x)[-1].lower() in img_formats]
 
         n = len(self.img_files)
         assert n > 0, 'No images found in %s. See %s' % (path, help_url)
