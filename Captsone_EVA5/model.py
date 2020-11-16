@@ -7,7 +7,7 @@ from blocks import _make_resnet_backbone, _make_pretrained_resnet ,_make_scratch
 
 
 class enc(nn.Module):
-    def __init__(self, preload=True, prelaod_pt='Midas/model-f46da743.pt', freeze=True):
+    def __init__(self, preload=True, prelaod_pt='/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/weights/model-f46da743.pt', freeze=True):
         super(enc, self).__init__()
         resnet101 = _make_pretrained_resnet(use_pretrained=False)
         if preload:
