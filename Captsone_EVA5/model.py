@@ -108,7 +108,7 @@ def _get_seq_block(seqlist):
 
 from model_yolo import *
 from utils_yolo.utils import *
-cfg = 'Captsone_EVA5/cfg_yolo/yolov3-custom.cfg'
+cfg = 'cfg_yolo/yolov3-custom.cfg'
 Darknet = Darknet(cfg)
 
 import torch.nn as nn
