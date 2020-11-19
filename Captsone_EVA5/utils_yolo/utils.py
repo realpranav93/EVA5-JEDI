@@ -448,10 +448,10 @@ def build_targets(p, targets, model):
     # for i in range(m.nl):
     #    anchors = m.anchors[i]
     multi_gpu = type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)
-    for i, j in enumerate(model.yolo_layers):
+    for i, j in enumerate(model.yolo_anchors):
         # get number of grid points and anchor vec for this yolo layer
-        anchors = model.module.module_list[j].anchor_vec if multi_gpu else model.module_list[j].anchor_vec
-
+        anchors = torch.from_numpy(j).float().to(targets.device)
+        #print(type(anchors))
         # iou of targets-anchors
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
         t, a = targets * gain, []
@@ -493,7 +493,7 @@ def build_targets(p, targets, model):
     return tcls, tbox, indices, av
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label=True, classes=None, agnostic=False):
+def non_max_suppression(prediction, conf_thres=0.001, iou_thres=0.6, multi_label=True, classes=None, agnostic=False):
     """
     Performs  Non-Maximum Suppression on inference results
     Returns detections with shape:

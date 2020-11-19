@@ -151,6 +151,7 @@ class YOLOLayer(nn.Module):
 
         # build xy offsets
         if not self.training:
+        #if self.training:
             yv, xv = torch.meshgrid([torch.arange(self.ny, device=device), torch.arange(self.nx, device=device)])
             self.grid = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float()
 
@@ -181,6 +182,7 @@ class YOLOLayer(nn.Module):
 
         elif ONNX_EXPORT:
             bs = 1  # batch size
+
         else:
             bs, _, ny, nx = p.shape  # bs, 255, 13, 13
             if (self.nx, self.ny) != (nx, ny):
@@ -190,22 +192,22 @@ class YOLOLayer(nn.Module):
         p = p.view(bs, self.na, self.no, self.ny, self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
-            return p
-
-        elif ONNX_EXPORT:
-            # Avoid broadcasting for ANE operations
-            m = self.na * self.nx * self.ny
-            ng = 1 / self.ng.repeat((m, 1))
-            grid = self.grid.repeat((1, self.na, 1, 1, 1)).view(m, 2)
-            anchor_wh = self.anchor_wh.repeat((1, 1, self.nx, self.ny, 1)).view(m, 2) * ng
-
-            p = p.view(m, self.no)
-            xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
-            wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
-            p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
-                torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
-            return p_cls, xy * ng, wh
-
+             return p
+        #
+        # elif ONNX_EXPORT:
+        #     # Avoid broadcasting for ANE operations
+        #     m = self.na * self.nx * self.ny
+        #     ng = 1 / self.ng.repeat((m, 1))
+        #     grid = self.grid.repeat((1, self.na, 1, 1, 1)).view(m, 2)
+        #     anchor_wh = self.anchor_wh.repeat((1, 1, self.nx, self.ny, 1)).view(m, 2) * ng
+        #
+        #     p = p.view(m, self.no)
+        #     xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
+        #     wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
+        #     p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
+        #         torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
+        #     return p_cls, xy * ng, wh
+        #
         else:  # inference
             io = p.clone()  # inference output
             io[..., :2] = torch.sigmoid(io[..., :2]) + self.grid  # xy
@@ -295,11 +297,11 @@ class Darknet(nn.Module):
                 print('%g/%g %s -' % (i, len(self.module_list), name), list(x.shape), str)
                 str = ''
 
-        if self.training:  # train
+        if self.training:# train
             return yolo_out
-        elif ONNX_EXPORT:  # export
-            x = [torch.cat(x, 0) for x in zip(*yolo_out)]
-            return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
+        # elif ONNX_EXPORT:  # export
+        #     x = [torch.cat(x, 0) for x in zip(*yolo_out)]
+        #     return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
         else:  # inference or test
             x, p = zip(*yolo_out)  # inference output, training output
             x = torch.cat(x, 1)  # cat yolo outputs

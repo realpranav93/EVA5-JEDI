@@ -128,6 +128,7 @@ class yolo_decoder(nn.Module):
         anc_13 = np.array([float(x) for x in val.split(',')]).reshape((-1, 2))[[6, 7, 8]]
         anc_26 = np.array([float(x) for x in val.split(',')]).reshape((-1, 2))[[3, 4, 5]]
         anc_52 = np.array([float(x) for x in val.split(',')]).reshape((-1, 2))[[0, 1, 2]]
+        self.yolo_anchors = [anc_13, anc_26, anc_52]
         # 13x13 yolo layer
         self.yolo_13_bottle_neck = nn.Conv2d(2048, 2048, kernel_size=1, stride=1, bias=False)
         self.yolo_13_path = _get_seq_block(_gt_darknet_children(list(range(84, 87))))
@@ -188,6 +189,13 @@ class yolo_decoder(nn.Module):
 class fork(nn.Module):
     def __init__(self, depth_freeze=False, yolo_freeze=False, depth_preload_pth='', yolo_preload_pth=''):
         super(fork, self).__init__()
+        # anchors for yolo loss calculation
+        val = "10,13,  16,30,  33,23,  30,61,  62,45,  59,119,  116,90,  156,198,  373,326"
+        anc_13 = np.array([float(x) for x in val.split(',')]).reshape((-1, 2))[[6, 7, 8]]
+        anc_26 = np.array([float(x) for x in val.split(',')]).reshape((-1, 2))[[3, 4, 5]]
+        anc_52 = np.array([float(x) for x in val.split(',')]).reshape((-1, 2))[[0, 1, 2]]
+        self.yolo_anchors = [anc_13, anc_26, anc_52]
+        # encoder
         self.encoder = enc()
         # depth decoder with preload
         self.decoder = depth_decoder(features=256)
