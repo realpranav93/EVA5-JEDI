@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 
 import test  # import test.py to get mAP after each epoch
-from models import *
+from model import *
 from utils.datasets import *
 from utils.utils import *
 
@@ -172,6 +172,8 @@ def train():
                                 rank=0)  # distributed training node rank
         model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
         model.yolo_layers = model.module.yolo_layers  # move yolo layer indices to top level
+
+    cd D:\ML\EVA\YoloV3
 
     # Dataset
     dataset = LoadImagesAndLabels(train_path, img_size, batch_size,

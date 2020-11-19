@@ -1,13 +1,15 @@
-import argparse
 
+import argparse
 import torch.distributed as dist
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+import os
 
 import test  # import test.py to get mAP after each epoch
-from models import *
-from utils.datasets import *
-from utils.utils import *
+from model import *
+from utils_yolo.datasets import *
+from utils_yolo.utils import *
+import yolo_test
 
 mixed_precision = True
 try:  # Mixed precision training https://github.com/NVIDIA/apex
@@ -60,7 +62,7 @@ def train():
     epochs = opt.epochs  # 500200 batches at bs 64, 117263 images = 273 epochs
     batch_size = opt.batch_size
     accumulate = opt.accumulate  # effective bs = batch_size * accumulate = 16 * 4 = 64
-    weights = opt.weights  # initial training weights
+    #weights = opt.weights  # initial training weights
     imgsz_min, imgsz_max, imgsz_test = opt.img_size  # img sizes (min, max, test)
 
     # Image Sizes
@@ -115,36 +117,45 @@ def train():
 
     start_epoch = 0
     best_fitness = 0.0
-    attempt_download(weights)
-    if weights.endswith('.pt'):  # pytorch format
-        # possible weights are '*.pt', 'yolov3-spp.pt', 'yolov3-tiny.pt' etc.
-        chkpt = torch.load(weights, map_location=device)
+    # attempt_download(weights)
+    # if weights.endswith('.pt'):  # pytorch format
+    #     # possible weights are '*.pt', 'yolov3-spp.pt', 'yolov3-tiny.pt' etc.
+    #     chkpt = torch.load(weights, map_location=device)
+    #
+    #     # load model
+    #     try:
+    #         chkpt['model'] = {k: v for k, v in chkpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
+    #         model.load_state_dict(chkpt['model'], strict=False)
+    #     except KeyError as e:
+    #         s = "%s is not compatible with %s. Specify --weights '' or specify a --cfg compatible with %s. " \
+    #             "See https://github.com/ultralytics/yolov3/issues/657" % (opt.weights, opt.cfg, opt.weights)
+    #         raise KeyError(s) from e
+    #
+    #     # load optimizer
+    #     if chkpt['optimizer'] is not None:
+    #         optimizer.load_state_dict(chkpt['optimizer'])
+    #         best_fitness = chkpt['best_fitness']
+    #
+    #     # load results
+    #     if chkpt.get('training_results') is not None:
+    #         with open(results_file, 'w') as file:
+    #             file.write(chkpt['training_results'])  # write results.txt
+    #
+    #     start_epoch = chkpt['epoch'] + 1
+    #     del chkpt
 
-        # load model
-        try:
-            chkpt['model'] = {k: v for k, v in chkpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
-            model.load_state_dict(chkpt['model'], strict=False)
-        except KeyError as e:
-            s = "%s is not compatible with %s. Specify --weights '' or specify a --cfg compatible with %s. " \
-                "See https://github.com/ultralytics/yolov3/issues/657" % (opt.weights, opt.cfg, opt.weights)
-            raise KeyError(s) from e
+    # elif len(weights) > 0:  # darknet format
+    #     # possible weights are '*.weights', 'yolov3-tiny.conv.15',  'darknet53.conv.74' etc.
+    #     load_darknet_weights(model, weights)
 
-        # load optimizer
-        if chkpt['optimizer'] is not None:
-            optimizer.load_state_dict(chkpt['optimizer'])
-            best_fitness = chkpt['best_fitness']
-
-        # load results
-        if chkpt.get('training_results') is not None:
-            with open(results_file, 'w') as file:
-                file.write(chkpt['training_results'])  # write results.txt
-
-        start_epoch = chkpt['epoch'] + 1
-        del chkpt
-
-    elif len(weights) > 0:  # darknet format
-        # possible weights are '*.weights', 'yolov3-tiny.conv.15',  'darknet53.conv.74' etc.
-        load_darknet_weights(model, weights)
+    mixed_precision = True
+    try:  # Mixed precision training https://github.com/NVIDIA/apex
+        from apex import amp
+    except:
+        # print('Apex recommended for mixed precision and faster training: https://github.com/NVIDIA/apex')
+        mixed_precision = False
+    if mixed_precision:
+        model, optimizer = amp.initialize(model, optimizer, opt_level='O1', verbosity=0)
 
     # Mixed precision training https://github.com/NVIDIA/apex
     if mixed_precision:
@@ -168,13 +179,15 @@ def train():
     # plt.savefig('LR.png', dpi=300)
 
     # Initialize distributed training
-    if device.type != 'cpu' and torch.cuda.device_count() > 1 and torch.distributed.is_available():
-        dist.init_process_group(backend='nccl',  # 'distributed backend'
-                                init_method='tcp://127.0.0.1:9999',  # distributed training init method
-                                world_size=1,  # number of nodes for distributed training
-                                rank=0)  # distributed training node rank
-        model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
-        model.yolo_layers = model.module.yolo_layers  # move yolo layer indices to top level
+    # if device.type != 'cpu' and torch.cuda.device_count() > 1 and torch.distributed.is_available():
+    #     dist.init_process_group(backend='nccl',  # 'distributed backend'
+    #                             init_method='tcp://127.0.0.1:9999',  # distributed training init method
+    #                             world_size=1,  # number of nodes for distributed training
+    #                             rank=0)  # distributed training node rank
+    #     model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+    #     model.yolo_layers = model.module.yolo_layers  # move yolo layer indices to top level
+
+    os.chdir('D:/ML/EVA/YoloV3')
 
     # Dataset
     dataset = LoadImagesAndLabels(train_path, img_size, batch_size,
@@ -183,6 +196,8 @@ def train():
                                   rect=opt.rect,  # rectangular training
                                   cache_images=opt.cache_images,
                                   single_cls=opt.single_cls)
+
+
 
     # Dataloader
     batch_size = min(batch_size, len(dataset))
