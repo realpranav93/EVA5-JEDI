@@ -11,6 +11,10 @@ from utils_yolo.datasets import *
 from utils_yolo.utils import *
 import yolo_test
 
+import torch
+import torch.nn as nn
+from depth_loss import SSIM
+
 mixed_precision = True
 try:  # Mixed precision training https://github.com/NVIDIA/apex
     from apex import amp
@@ -92,8 +96,26 @@ def train():
     # Initialize model
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    model = fork(depth_freeze=True, yolo_freeze=False, depth_preload_pth='',
+
+
+
+    if opt.train_decoder == 'depth':
+        depth_freeze = False
+        yolo_freeze = True
+    elif opt.train_decoder == 'yolo':
+        print('im in yolo')
+        depth_freeze = True
+        yolo_freeze = False
+    elif opt.train_decoder == 'all':
+        depth_freeze = False
+        yolo_freeze = False
+
+    print(depth_freeze, yolo_freeze)
+
+
+    model = fork(depth_freeze=depth_freeze, yolo_freeze=yolo_freeze, depth_preload_pth='',
                  yolo_preload_pth='').to(device)
+
 
     # Optimizer
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
@@ -239,6 +261,19 @@ def train():
     print('Image sizes %g - %g train, %g test' % (imgsz_min, imgsz_max, imgsz_test))
     print('Using %g dataloader workers' % nw)
     print('Starting training for %g epochs...' % epochs)
+    if opt.train_decoder == 'depth':
+        _mseloss = 1
+        _ssimloss = 1
+        _yololoss = 0
+    elif opt.train_decoder == 'yolo':
+        _mseloss = 0
+        _ssimloss = 0
+        _yololoss = 1
+    elif opt.train_decoder == 'all':
+        _mseloss = 1
+        _ssimloss = 1
+        _yololoss = 1
+
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -249,8 +284,13 @@ def train():
             dataset.indices = random.choices(range(dataset.n), weights=image_weights, k=dataset.n)  # rand weighted idx
 
         mloss = torch.zeros(4).to(device)  # mean losses
-        print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
+        #print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
+        print(('\n' + '%10s' * 6) % ('Epoch', 'gpu_mem', 'depthloss', 'yololoss', 'finalloss', 'img_size'))
         pbar = tqdm(enumerate(dataloader), total=nb)  # progress bar
+
+        dl_epoch = torch.zeros(1).to(device)
+        yl_epoch = torch.zeros(1).to(device)
+        fl_epoch = torch.zeros(1).to(device)
         for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device).float() / 255.0  # uint8 to float32, 0 - 255 to 0.0 - 1.0
@@ -280,22 +320,45 @@ def train():
             # Run model
             pred = model(imgs)
             yolo_pred = (pred[1], pred[2], pred[3])
+            depth_pred = pred[0]
+            # print(depth_pred)
 
+            depth_images = 'D:/ML/EVA/JEDI/S14/midas_out_colormap-20201031T155204Z-001'
+            from utils_depth import _get_depth_targets
+            depth_targets = _get_depth_targets(paths=paths, loc=depth_images).to(device)
+
+            # compute depth loss
+            mse_loss = nn.MSELoss()
+            ssim_loss = SSIM()
+            depth_mseloss = mse_loss(depth_pred.unsqueeze(0).permute(1, 0, 2, 3),
+                                     depth_targets.unsqueeze(0).permute(1, 0, 2, 3))
+            depth_ssimloss = 1 - ssim_loss(depth_pred.unsqueeze(0).permute(1, 0, 2, 3),
+                                           depth_targets.unsqueeze(0).permute(1, 0, 2, 3))
+            depth_loss = _mseloss * depth_mseloss + _ssimloss * depth_ssimloss
+            dl_epoch += depth_loss
+
+            # Compute yolo loss
+            yolo_loss, loss_items = compute_loss(yolo_pred, targets, model)
+            yl_epoch += yolo_loss
+
+            # final loss
+            final_loss = depth_loss + _yololoss * yolo_loss
+            fl_epoch += final_loss
             # Compute loss
-            loss, loss_items = compute_loss(yolo_pred, targets, model)
+            #loss, loss_items = compute_loss(yolo_pred, targets, model)
             # if not torch.isfinite(loss):
             #     print('WARNING: non-finite loss, ending training ', loss_items)
             #     return results
 
             # Scale loss by nominal batch_size of 64
-            loss *= batch_size / 64
+            #loss *= batch_size / 64
 
             # Compute gradient
             if mixed_precision:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                with amp.scale_loss(final_loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
-                loss.backward()
+                final_loss.backward()
 
             # Optimize accumulated gradient
             if ni % accumulate == 0:
@@ -304,9 +367,11 @@ def train():
                 ema.update(model)
 
             # Print batch results
-            mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
+            #mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
             mem = '%.3gG' % (torch.cuda.memory_cached() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
-            s = ('%10s' * 2 + '%10.3g' * 6) % ('%g/%g' % (epoch, epochs - 1), mem, *mloss, len(targets), img_size)
+            #s = ('%10s' * 2 + '%10.3g' * 6) % ('%g/%g' % (epoch, epochs - 1), mem, *mloss, len(targets), img_size)
+            s = ('%10s' * 2 + '%10.3g' * 4) % ('%g/%g' % (epoch, epochs - 1), mem, dl_epoch, yl_epoch, fl_epoch, img_size)
+
             pbar.set_description(s)
 
             # Plot images with bounding boxes
@@ -337,8 +402,8 @@ def train():
                                       dataloader=testloader)
 
         # Write epoch results
-        with open(results_file, 'a') as f:
-            f.write(s + '%10.3g' * 7 % results + '\n')  # P, R, mAP, F1, test_losses=(GIoU, obj, cls)
+        #with open(results_file, 'a') as f:
+        #    f.write(s + '%10.3g' * 7 % results + '\n')  # P, R, mAP, F1, test_losses=(GIoU, obj, cls)
         if len(opt.name) and opt.bucket:
             os.system('gsutil cp results.txt gs://%s/results/results%s.txt' % (opt.bucket, opt.name))
 
@@ -424,6 +489,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1 or cpu)')
     parser.add_argument('--adam', action='store_true', help='use adam optimizer')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
+    parser.add_argument('--train_decoder', type=str, default='all') # depth, yolo, all
     opt = parser.parse_args()
     opt.weights = last if opt.resume else opt.weights
     print(opt)

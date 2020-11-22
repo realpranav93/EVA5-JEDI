@@ -2,24 +2,28 @@ import argparse
 import json
 
 from torch.utils.data import DataLoader
-
+import torch
 from model_yolo import *
 from utils_yolo.datasets import *
 from utils_yolo.utils import *
+import torch
+import torch.nn as nn
+from depth_loss import SSIM
 
 
 def test(cfg,
          data,
          weights=None,
          batch_size=16,
-         img_size=416,
+         img_size=516,
          conf_thres=torch.tensor(0.001),
          iou_thres=torch.tensor(0.6),  # for nms
          save_json=False,
          single_cls=False,
          augment=False,
          model=None,
-         dataloader=None):
+         dataloader=None
+         ):
     # Initialize/load model and set device
     if model is None:
         device = torch_utils.select_device(opt.device, batch_size=batch_size)
@@ -72,8 +76,8 @@ def test(cfg,
     model.eval()
     _ = model(torch.zeros((1, 3, img_size, img_size), device=device)) if device.type != 'cpu' else None  # run once
     coco91class = coco80_to_coco91_class()
-    s = ('%20s' + '%10s' * 6) % ('Class', 'Images', 'Targets', 'P', 'R', 'mAP@0.5', 'F1')
-    p, r, f1, mp, mr, map, mf1, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
+    s = ('%20s' + '%10s' * 7) % ('Class', 'Images', 'Targets', 'P', 'R', 'mAP@0.5', 'F1', 'depth_SSIM')
+    p, r, f1, mp, mr, map, mf1, t0, t1, depth_ssim_m = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
     for batch_i, (imgs, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
@@ -93,11 +97,22 @@ def test(cfg,
             t = torch_utils.time_synchronized()
             model.eval()
             p = model(imgs)
-            # inference
+            # depth inference
+            print('running depth inference')
+            depth_pred = p[0]
+            from depth_loss import SSIM
+            from utils_depth import _get_depth_targets
+            depth_targets = _get_depth_targets(paths=paths, loc='D:/ML/EVA/JEDI/S14/midas_out_colormap-20201031T155204Z-001').to(device)
+            ssim_loss = SSIM()
+            depth_ssim = ssim_loss(depth_pred.unsqueeze(0).permute(1, 0, 2, 3),
+                                   depth_targets.unsqueeze(0).permute(1, 0, 2, 3))
+            depth_ssim_m += depth_ssim
+            print('depth_inference: ', depth_ssim)
+            # yolo inference
             inf_out = (p[1][0], p[2][0], p[3][0])  # inference output, training output
             inf_out = torch.cat(inf_out, 1)  # cat yolo outputs
 
-            #training outputs
+            # training outputs
             train_out = (p[1][1], p[2][1], p[3][1])
 
             t0 += torch_utils.time_synchronized() - t
@@ -187,8 +202,9 @@ def test(cfg,
         nt = torch.zeros(1)
 
     # Print results
-    pf = '%20s' + '%10.3g' * 6  # print format
-    print(pf % ('all', seen, nt.sum(), mp, mr, map, mf1))
+    # print('Model', 'Images', 'Targets', 'P', 'R', 'mAP@0.5', 'F1')
+    pf = '%20s' + '%10.3g' * 7  # print format
+    print(pf % ('all', seen, nt.sum(), mp, mr, map, mf1, depth_ssim_m.mean()))
 
     # Print results per class
     if verbose and nc > 1 and len(stats):
@@ -200,11 +216,11 @@ def test(cfg,
         t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (img_size, img_size, batch_size)  # tuple
         print('Speed: %.1f/%.1f/%.1f ms inference/NMS/total per %gx%g image at batch-size %g' % t)
 
-
     maps = np.zeros(nc) + map
     for i, c in enumerate(ap_class):
         maps[c] = ap[i]
-    return (mp, mr, map, mf1, *(loss.cpu() / len(dataloader)).tolist()), maps
+
+    return (mp, mr, map, mf1, *(loss.cpu() / len(dataloader)).tolist(), depth_ssim_m.mean()), maps
 
 
 if __name__ == '__main__':

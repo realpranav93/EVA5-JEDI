@@ -214,7 +214,7 @@ class YOLOLayer(nn.Module):
             io[..., 2:4] = torch.exp(io[..., 2:4]) * self.anchor_wh  # wh yolo method
             io[..., :4] *= self.stride
             torch.sigmoid_(io[..., 4:])
-            return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
+            return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as
 
 
 class Darknet(nn.Module):
