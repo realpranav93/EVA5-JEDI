@@ -102,7 +102,7 @@ def test(cfg,
             depth_pred = p[0]
             from depth_loss import SSIM
             from utils_depth import _get_depth_targets
-            depth_targets = _get_depth_targets(paths=paths, loc='D:/ML/EVA/JEDI/S14/midas_out_colormap-20201031T155204Z-001').to(device)
+            depth_targets = _get_depth_targets(paths=paths, loc='/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/data/customdata/midas_out_colormap').to(device)
             ssim_loss = SSIM()
             depth_ssim = ssim_loss(depth_pred.unsqueeze(0).permute(1, 0, 2, 3),
                                    depth_targets.unsqueeze(0).permute(1, 0, 2, 3))

@@ -209,7 +209,7 @@ def train():
     #     model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
     #     model.yolo_layers = model.module.yolo_layers  # move yolo layer indices to top level
 
-    os.chdir('D:/ML/EVA/YoloV3')
+    os.chdir('/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3')
 
     # Dataset
     dataset = LoadImagesAndLabels(train_path, img_size, batch_size,
@@ -323,7 +323,7 @@ def train():
             depth_pred = pred[0]
             # print(depth_pred)
 
-            depth_images = 'D:/ML/EVA/JEDI/S14/midas_out_colormap-20201031T155204Z-001'
+            depth_images = '/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/data/customdata/midas_out_colormap'
             from utils_depth import _get_depth_targets
             depth_targets = _get_depth_targets(paths=paths, loc=depth_images).to(device)
 

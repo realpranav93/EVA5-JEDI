@@ -23,7 +23,7 @@ def get_depth_map(name, loc, img_size = 512):
         img = Image.open(data).convert('L')
 
     else:
-        required_list = [os.path.join(loc,'midas_out_colormap',x) for x in os.listdir(os.path.join(loc,'midas_out_colormap'))
+        required_list = [os.path.join(loc,x) for x in os.listdir(os.path.join(loc))
                      if x in name]
         img = Image.open(required_list[0]).convert('L')
 
@@ -35,7 +35,7 @@ def get_depth_map(name, loc, img_size = 512):
 def _get_depth_targets(paths,loc, img_size = 512):
     targets = []
     for x in paths:
-      name = str.split(str.split(x,'images\\')[1],'.jpg')[0] + '.png'
+      name = str.split(str.split(x,'images/')[1],'.jpg')[0] + '.png'
       #print(name)
       targets.append(get_depth_map(name = name, loc = loc, img_size = img_size))
     return(torch.cat(targets))
