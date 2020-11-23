@@ -8,6 +8,8 @@ from utils_yolo.utils import *
 import torch
 import torch.nn as nn
 from depth_loss import SSIM
+#from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 
 
 def test(cfg,
@@ -15,8 +17,8 @@ def test(cfg,
          weights=None,
          batch_size=16,
          img_size=512,
-         conf_thres=torch.tensor(0.001),
-         iou_thres=torch.tensor(0.6),  # for nms
+         conf_thres=0.0001,
+         iou_thres=0.6,  # for nms
          save_json=False,
          single_cls=False,
          augment=False,
@@ -72,9 +74,9 @@ def test(cfg,
                                 collate_fn=dataset.collate_fn)
 
     seen = 0
-    model.eval()
-    _ = model(torch.zeros((1, 3, img_size, img_size), device=device)) if device.type != 'cpu' else None  # run once
-    coco91class = coco80_to_coco91_class()
+    #model.eval()
+    #_ = model(torch.zeros((1, 3, img_size, img_size), device=device)) if device.type != 'cpu' else None  # run once
+    #coco91class = coco80_to_coco91_class()
     s = ('%20s' + '%10s' * 7) % ('Class', 'Images', 'Targets', 'P', 'R', 'mAP@0.5', 'F1', 'depth_SSIM')
     p, r, f1, mp, mr, map, mf1, t0, t1, depth_ssim_m = 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
@@ -82,7 +84,7 @@ def test(cfg,
     for batch_i, (imgs, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         imgs = imgs.to(device).float() / 255.0  # uint8 to float32, 0 - 255 to 0.0 - 1.0
         targets = targets.to(device)
-        print('testloader shape:',imgs.shape)
+        #print('testloader shape:',imgs.shape)
         nb, _, height, width = imgs.shape  # batch size, channels, height, width
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
@@ -98,9 +100,9 @@ def test(cfg,
             model.eval()
             p = model(imgs)
             # depth inference
-            print('running depth inference')
+            #print('running depth inference')
             depth_pred = p[0]
-            print('test pred shape:', depth_pred.shape)
+            #print('test pred shape:', depth_pred.shape)
             from depth_loss import SSIM
             from utils_depth import _get_depth_targets
             depth_targets = _get_depth_targets(paths=paths, loc='/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/data/customdata/midas_out_colormap').to(device)
@@ -108,7 +110,7 @@ def test(cfg,
             depth_ssim = ssim_loss(depth_pred.unsqueeze(0).permute(1, 0, 2, 3),
                                    depth_targets.unsqueeze(0).permute(1, 0, 2, 3))
             depth_ssim_m += depth_ssim
-            print('depth_inference: ', depth_ssim)
+            #print('depth_inference: ', depth_ssim)
             # yolo inference
             inf_out = (p[1][0], p[2][0], p[3][0])  # inference output, training output
             inf_out = torch.cat(inf_out, 1)  # cat yolo outputs
@@ -171,8 +173,8 @@ def test(cfg,
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
-                    ti = (cls == tcls_tensor).nonzero().view(-1)  # prediction indices
-                    pi = (cls == pred[:, 5]).nonzero().view(-1)  # target indices
+                    ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # prediction indices
+                    pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)  # target indices
 
                     # Search for detections
                     if pi.shape[0]:
@@ -180,7 +182,7 @@ def test(cfg,
                         ious, i = box_iou(pred[pi, :4], tbox[ti]).max(1)  # best ious, indices
 
                         # Append detections
-                        for j in (ious > iouv[0]).nonzero():
+                        for j in (ious > iouv[0]).nonzero(as_tuple=False):
                             d = ti[i[j]]  # detected target
                             if d not in detected:
                                 detected.append(d)

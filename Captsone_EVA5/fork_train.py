@@ -15,7 +15,10 @@ import torch
 import torch.nn as nn
 from depth_loss import SSIM
 
-mixed_precision = True
+#from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
+
+mixed_precision = False
 try:  # Mixed precision training https://github.com/NVIDIA/apex
     from apex import amp
 except:
@@ -35,7 +38,7 @@ hyp = {'giou': 3.54,  # giou loss gain
        'obj': 64.3,  # obj loss gain (*=img_size/320 if img_size != 320)
        'obj_pw': 1.0,  # obj BCELoss positive_weight
        'iou_t': 0.225,  # iou training threshold
-       'lr0': 0.01,  # initial learning rate (SGD=5E-3, Adam=5E-4)
+       'lr0': 0.1,  # initial learning rate (SGD=5E-3, Adam=5E-4)
        'lrf': 0.0005,  # final learning rate (with cos scheduler)
        'momentum': 0.937,  # SGD momentum
        'weight_decay': 0.000484,  # optimizer weight decay
@@ -110,11 +113,11 @@ def train():
         depth_freeze = False
         yolo_freeze = False
 
-    print(depth_freeze, yolo_freeze)
+    #print(depth_freeze, yolo_freeze)
 
 
-    model = fork(depth_freeze=depth_freeze, yolo_freeze=yolo_freeze, depth_preload_pth='',
-                 yolo_preload_pth='').to(device)
+    model = fork(depth_freeze=depth_freeze, yolo_freeze=yolo_freeze, depth_preload_pth='/content/drive/MyDrive/EVA/EVA5/YoloV3_S13/YoloV3/weights/model-f46da743.pt',
+                 yolo_preload_pth='/content/drive/MyDrive/EVA/EVA5/YoloV3_S13/YoloV3/weights/last_ppe.pt').to(device)
 
 
     # Optimizer
@@ -133,6 +136,7 @@ def train():
         # optimizer = AdaBound(pg0, lr=hyp['lr0'], final_lr=0.1)
     else:
         optimizer = optim.SGD(pg0, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
+
     optimizer.add_param_group({'params': pg1, 'weight_decay': hyp['weight_decay']})  # add pg1 with weight_decay
     optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
     del pg0, pg1, pg2
@@ -170,7 +174,7 @@ def train():
     #     # possible weights are '*.weights', 'yolov3-tiny.conv.15',  'darknet53.conv.74' etc.
     #     load_darknet_weights(model, weights)
 
-    mixed_precision = True
+    
     try:  # Mixed precision training https://github.com/NVIDIA/apex
         from apex import amp
     except:
@@ -200,14 +204,14 @@ def train():
     # plt.tight_layout()
     # plt.savefig('LR.png', dpi=300)
 
-    # Initialize distributed training
-    # if device.type != 'cpu' and torch.cuda.device_count() > 1 and torch.distributed.is_available():
-    #     dist.init_process_group(backend='nccl',  # 'distributed backend'
-    #                             init_method='tcp://127.0.0.1:9999',  # distributed training init method
-    #                             world_size=1,  # number of nodes for distributed training
-    #                             rank=0)  # distributed training node rank
-    #     model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
-    #     model.yolo_layers = model.module.yolo_layers  # move yolo layer indices to top level
+    #Initialize distributed training
+    if device.type != 'cpu' and torch.cuda.device_count() > 1 and torch.distributed.is_available():
+        dist.init_process_group(backend='nccl',  # 'distributed backend'
+                                init_method='tcp://127.0.0.1:9999',  # distributed training init method
+                                world_size=1,  # number of nodes for distributed training
+                                rank=0)  # distributed training node rank
+        model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
+        model.yolo_layers = model.module.yolo_layers  # move yolo layer indices to top level
 
     os.chdir('/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3')
 
@@ -289,7 +293,7 @@ def train():
 
         mloss = torch.zeros(4).to(device)  # mean losses
         #print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
-        print(('\n' + '%10s' * 6) % ('Epoch', 'gpu_mem', 'depthloss', 'yololoss', 'finalloss', 'img_size'))
+        print(('\n' + '%10s' * 6) % ('Epoch', '   gpu_mem', '   depthloss', '   yololoss', '   finalloss', '   img_size'))
         pbar = tqdm(enumerate(dataloader), total=nb)  # progress bar
 
         dl_epoch = torch.zeros(1).to(device)
@@ -325,7 +329,7 @@ def train():
             pred = model(imgs)
             yolo_pred = (pred[1], pred[2], pred[3])
             depth_pred = pred[0]
-            print(depth_pred.shape)
+            #print(depth_pred.shape)
 
             depth_images = '/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/data/customdata/midas_out_colormap'
             from utils_depth import _get_depth_targets
@@ -358,17 +362,17 @@ def train():
             #loss *= batch_size / 64
 
             # Compute gradient
-            if mixed_precision:
-                with amp.scale_loss(final_loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                final_loss.backward()
+            #if mixed_precision:
+            #    with amp.scale_loss(final_loss, optimizer) as scaled_loss:
+            #        scaled_loss.backward()
+            #else:
+            final_loss.backward()
 
             # Optimize accumulated gradient
-            if ni % accumulate == 0:
-                optimizer.step()
-                optimizer.zero_grad()
-                ema.update(model)
+            #if ni % accumulate == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+            #ema.update(model)
 
             # Print batch results
             #mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
