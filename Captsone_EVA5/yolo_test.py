@@ -2,7 +2,6 @@ import argparse
 import json
 
 from torch.utils.data import DataLoader
-import torch
 from model_yolo import *
 from utils_yolo.datasets import *
 from utils_yolo.utils import *
@@ -15,7 +14,7 @@ def test(cfg,
          data,
          weights=None,
          batch_size=16,
-         img_size=516,
+         img_size=512,
          conf_thres=torch.tensor(0.001),
          iou_thres=torch.tensor(0.6),  # for nms
          save_json=False,
@@ -83,6 +82,7 @@ def test(cfg,
     for batch_i, (imgs, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         imgs = imgs.to(device).float() / 255.0  # uint8 to float32, 0 - 255 to 0.0 - 1.0
         targets = targets.to(device)
+        print('testloader shape:',imgs.shape)
         nb, _, height, width = imgs.shape  # batch size, channels, height, width
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
@@ -100,6 +100,7 @@ def test(cfg,
             # depth inference
             print('running depth inference')
             depth_pred = p[0]
+            print('test pred shape:', depth_pred.shape)
             from depth_loss import SSIM
             from utils_depth import _get_depth_targets
             depth_targets = _get_depth_targets(paths=paths, loc='/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/data/customdata/midas_out_colormap').to(device)

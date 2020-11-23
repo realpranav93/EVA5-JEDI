@@ -232,15 +232,19 @@ def train():
                                              collate_fn=dataset.collate_fn)
 
     # Testloader
-    testloader = torch.utils.data.DataLoader(LoadImagesAndLabels(test_path, imgsz_test, batch_size,
-                                                                 hyp=hyp,
-                                                                 rect=True,
-                                                                 cache_images=opt.cache_images,
-                                                                 single_cls=opt.single_cls),
-                                             batch_size=batch_size,
-                                             num_workers=nw,
-                                             pin_memory=True,
-                                             collate_fn=dataset.collate_fn)
+    testdataset = LoadImagesAndLabels(test_path, img_size = 512 , batch_size = batch_size,
+                                  hyp=hyp,  # augmentation hyperparameters
+                                  rect=opt.rect,  # rectangular training
+                                  cache_images=opt.cache_images,
+                                  single_cls=opt.single_cls)
+
+
+    testloader = torch.utils.data.DataLoader(dataset,
+                                         batch_size=batch_size,
+                                         num_workers=nw,
+                                         shuffle=not opt.rect,  # Shuffle=True unless rectangular training is used
+                                         pin_memory=True,
+                                         collate_fn=dataset.collate_fn)
 
     # Model parameters
     model.nc = nc  # attach number of classes to model
@@ -321,7 +325,7 @@ def train():
             pred = model(imgs)
             yolo_pred = (pred[1], pred[2], pred[3])
             depth_pred = pred[0]
-            # print(depth_pred)
+            print(depth_pred.shape)
 
             depth_images = '/content/drive/My Drive/EVA/EVA5/YoloV3_S13/YoloV3/data/customdata/midas_out_colormap'
             from utils_depth import _get_depth_targets
