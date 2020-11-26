@@ -412,8 +412,8 @@ def train():
         # Write epoch results
         #with open(results_file, 'a') as f:
         #    f.write(s + '%10.3g' * 7 % results + '\n')  # P, R, mAP, F1, test_losses=(GIoU, obj, cls)
-        if len(opt.name) and opt.bucket:
-            os.system('gsutil cp results.txt gs://%s/results/results%s.txt' % (opt.bucket, opt.name))
+        #if len(opt.name) and opt.bucket:
+        #   os.system('gsutil cp results.txt gs://%s/results/results%s.txt' % (opt.bucket, opt.name))
 
         # Write Tensorboard results
         if tb_writer:
@@ -429,13 +429,13 @@ def train():
         # Save training results
         save = (not opt.nosave) or (final_epoch and not opt.evolve)
         if save:
-            with open(results_file, 'r') as f:
+            #with open(results_file, 'r') as f:
                 # Create checkpoint
-                chkpt = {'epoch': epoch,
-                         'best_fitness': best_fitness,
-                         #'training_results': f.read(),
-                         'model': ema.ema.module.state_dict() if hasattr(model, 'module') else ema.ema.state_dict(),
-                         'optimizer': None if final_epoch else optimizer.state_dict()}
+            chkpt = {'epoch': epoch,
+                      'best_fitness': best_fitness,
+                      #'training_results': f.read(),
+                      'model': ema.ema.module.state_dict() if hasattr(model, 'module') else ema.ema.state_dict(),
+                      'optimizer': None if final_epoch else optimizer.state_dict()}
 
             # Save last checkpoint
             torch.save(chkpt, last)
