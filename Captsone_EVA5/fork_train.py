@@ -9,7 +9,7 @@ import test  # import test.py to get mAP after each epoch
 from model import *
 from utils_yolo.datasets import *
 from utils_yolo.utils import *
-import yolo_test
+import test
 
 import torch
 import torch.nn as nn
@@ -116,8 +116,8 @@ def train():
     #print(depth_freeze, yolo_freeze)
 
 
-    model = fork(depth_freeze=depth_freeze, yolo_freeze=yolo_freeze, depth_preload_pth='/content/drive/MyDrive/EVA/EVA5/YoloV3_S13/YoloV3/weights/model-f46da743.pt',
-                 yolo_preload_pth='/content/drive/MyDrive/EVA/EVA5/YoloV3_S13/YoloV3/weights/last_ppe.pt').to(device)
+    model = fork(depth_freeze=depth_freeze, yolo_freeze=yolo_freeze, depth_preload_pth='',
+                 yolo_preload_pth='').to(device)
 
 
     # Optimizer
@@ -276,7 +276,7 @@ def train():
     elif opt.train_decoder == 'yolo':
         _mseloss = 0
         _ssimloss = 0
-        _yololoss = 1
+        _yololoss = 0.1
     elif opt.train_decoder == 'all':
         _mseloss = 1
         _ssimloss = 1
@@ -372,7 +372,7 @@ def train():
             #if ni % accumulate == 0:
             optimizer.step()
             optimizer.zero_grad()
-            #ema.update(model)
+            ema.update(model)
 
             # Print batch results
             #mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
@@ -400,7 +400,7 @@ def train():
         final_epoch = epoch + 1 == epochs
         if not opt.notest or final_epoch:  # Calculate mAP
             is_coco = any([x in data for x in ['coco.data', 'coco2014.data', 'coco2017.data']]) and model.nc == 80
-            results, maps = yolo_test.test(cfg,
+            results, maps = test.test(cfg,
                                       data,
                                       batch_size=batch_size,
                                       img_size=imgsz_test,
@@ -417,10 +417,8 @@ def train():
 
         # Write Tensorboard results
         if tb_writer:
-            tags = ['train/giou_loss', 'train/obj_loss', 'train/cls_loss',
-                    'metrics/precision', 'metrics/recall', 'metrics/mAP_0.5', 'metrics/F1',
-                    'val/giou_loss', 'val/obj_loss', 'val/cls_loss']
-            for x, tag in zip(list(mloss[:-1]) + list(results), tags):
+            tags = ['depth_loss', 'yolo_loss', 'fork_loss']
+            for x, tag in zip(list([dl_epoch, yl_epoch, fl_epoch]), tags):
                 tb_writer.add_scalar(tag, x, epoch)
 
         # Update best mAP
@@ -435,7 +433,7 @@ def train():
                 # Create checkpoint
                 chkpt = {'epoch': epoch,
                          'best_fitness': best_fitness,
-                         'training_results': f.read(),
+                         #'training_results': f.read(),
                          'model': ema.ema.module.state_dict() if hasattr(model, 'module') else ema.ema.state_dict(),
                          'optimizer': None if final_epoch else optimizer.state_dict()}
 
