@@ -119,6 +119,7 @@ def train():
     model = fork(depth_freeze=depth_freeze, yolo_freeze=yolo_freeze, depth_preload_pth='',
                  yolo_preload_pth='').to(device)
 
+    model.load_state_dict(torch.load('/content/drive/MyDrive/EVA/EVA5/YoloV3_S13/YoloV3/weights/best.pt')['model'])
 
     # Optimizer
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
@@ -271,7 +272,7 @@ def train():
     print('Starting training for %g epochs...' % epochs)
     if opt.train_decoder == 'depth':
         _mseloss = 1
-        _ssimloss = 1
+        _ssimloss = 0.1
         _yololoss = 0
     elif opt.train_decoder == 'yolo':
         _mseloss = 0
@@ -280,7 +281,7 @@ def train():
     elif opt.train_decoder == 'all':
         _mseloss = 1
         _ssimloss = 1
-        _yololoss = 1
+        _yololoss = 0.1
 
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
@@ -347,6 +348,7 @@ def train():
 
             # Compute yolo loss
             yolo_loss, loss_items = compute_loss(yolo_pred, targets, model)
+            yolo_loss = _yololoss * yolo_loss
             yl_epoch += yolo_loss
 
             # final loss
