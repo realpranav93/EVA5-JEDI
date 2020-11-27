@@ -30,6 +30,8 @@ Though YoloV3 had darknet a form of densenet as its encoder, it is replaced by p
 ![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/depth_decoder.PNG "Depth decoder")
 
 **Yolo Decoder:**
+
 ![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_decoder.PNG "Depth decoder")
 
+sdadfadf
 ![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_path_tail.PNG "Depth decoder")
