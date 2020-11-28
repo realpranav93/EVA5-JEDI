@@ -50,9 +50,21 @@ Following is the code to be run to train the code:
 ```
 
 Following are the parameters are to be passed for training: 
-**Team members:**
 arguments| description |
 ---|---|
 --cfg| Text file to generate base yolo model based on which fork model is built on|
 --data|location of config file with information of labels and images for both train and test data|
 train_decoder| argument to specify which part of fork to train `all - train both yolo and depth, depth - train depth decoder, yolo - train yolo decoder`|
+
+Train Decoder argument: 
+During back propagation of training, all the parameters in the modules of encoder are always frozen by making `require_grad = False`. And yolo and depth decoder are frozen as per the argument. And example of the output during the model initiation of training yolo decoder is as follows: 
+```
+resnet_layer 0 was frozen
+resnet_layer 1 was frozen
+resnet_layer 2 was frozen
+resnet_layer 3 was frozen
+depth_layer 0 was frozen
+```
+
+
+
