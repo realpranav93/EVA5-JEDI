@@ -65,6 +65,26 @@ resnet_layer 2 was frozen
 resnet_layer 3 was frozen
 depth_layer 0 was frozen
 ```
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg "Depth decoder")
+In this [notebook](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/Capstone_eva5_pranav.ipynb) I have trained yolo and showcased that yolo_loss could be decreased and also showcased that all the decoders can also be trained simultaneoulsy. For yolo we have used the loss function used in stock yolov3 for depth a SSIM(structural similarity index measure) and MSE as loss. 
 
+We have used tensorboard to log the training and here is the yolo_loss for the above training: 
+![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_loss.svg "yolo_training")
 
+fork_loss for the same training instance: 
+![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg "yolo_training")
+
+## Learnings: 
+
+1. Given a chance again to do the assignmnet I would spend time in writing the training function from scractch to effectively test different loss functions. Currrently lot of time was spent in integrating 2 different code bases that starkly different.
+2. I would also try training with different image sizes. 
+
+## Code structure
+
+Script| description |
+---|---|
+model.py| Script where fork model is defined. Fork model consists of encoder, depth_decoder, yolo_decoder, fork class|
+model_yolo.py| Base model of yolo v3 on which yolo_decoder modules are taken and a network is built|
+train_fork.py and test.py|Train and evaluaton of the model during Training|
+utils_yolo| All the util functions like parsing and loading data e.t.c to run DarknetV3(yolov3) model|
+blocks.py| utility functions for building Depth decoder|
+depth_loss|SSIM function for evaluation for depth loss|
