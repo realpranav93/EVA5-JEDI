@@ -65,6 +65,6 @@ resnet_layer 2 was frozen
 resnet_layer 3 was frozen
 depth_layer 0 was frozen
 ```
-
+![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg "Depth decoder")
 
 
