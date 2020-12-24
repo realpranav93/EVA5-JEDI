@@ -73,12 +73,12 @@ depth_layer 0 was frozen
 ```
 In this [notebook](https://colab.research.google.com/drive/14btTA0vYLYuvxlaI3yHUzTfM-3E8Yyt1?authuser=1#scrollTo=LFokGH5NjFrQ) I have trained yolo and showcased that yolo_loss could be decreased and also showcased that all the decoders can also be trained simultaneoulsy. For yolo I have used the loss function used in stock yolov3 for depth a SSIM(structural similarity index measure) and MSE as loss. 
 
-I have used tensorboard to log the training and here is the yolo_loss for the above training: 
+I have used tensorboard to log the training.
 
+#### yololoss
 <img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_loss.svg" height="400" width="400">
 
-fork_loss for the same training instance: 
-
+#### fork_loss 
 <img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg" height="400" width="400">
 
 ## Learnings: 
