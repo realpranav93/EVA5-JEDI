@@ -13,7 +13,8 @@ Agenda of the project was to use existing state of the art architecture and util
 2. [MiDaS](https://github.com/intel-isl/MiDaS) 
 
 ### Architecture:
-Here is the Overall Architecture: 
+Here is the Overall Architecture:
+
 <img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_model_architecture.png" height="300" width="700">
 
 
