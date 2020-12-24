@@ -5,6 +5,7 @@
 2. Training
 3. Learnings
 4. Code base
+5. Model Inference
 
 ## Project Summary: 
 Agenda of the project was to use existing state of the art architecture and utilize transfer learning technique to merge into a Single encoder --> Multi decoder achitecure. This model would take a input and give outs for both Object Detection and Depth Estimation. Here are the base models on which the architecture is inspired from: 
@@ -12,9 +13,9 @@ Agenda of the project was to use existing state of the art architecture and util
 2. [MiDaS](https://github.com/intel-isl/MiDaS) 
 
 ### Architecture:
-Here is the Overall Architecture at higlevel look like: 
+Here is the Overall Architecture: 
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_model_architecture.png" height="300" width="700">
 
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_model.PNG "Fork model")
 
 **Encoder:** 
 Though YoloV3 had darknet a form of densenet as its encoder, it is replaced by pre-trained resnext101 as encoder. It takes a image(img_size) and gives the following output: 
