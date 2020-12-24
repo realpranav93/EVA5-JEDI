@@ -65,13 +65,15 @@ resnet_layer 2 was frozen
 resnet_layer 3 was frozen
 depth_layer 0 was frozen
 ```
-In this [notebook](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/Capstone_eva5_pranav.ipynb) I have trained yolo and showcased that yolo_loss could be decreased and also showcased that all the decoders can also be trained simultaneoulsy. For yolo I have used the loss function used in stock yolov3 for depth a SSIM(structural similarity index measure) and MSE as loss. 
+In this [notebook](https://colab.research.google.com/drive/14btTA0vYLYuvxlaI3yHUzTfM-3E8Yyt1?authuser=1#scrollTo=LFokGH5NjFrQ) I have trained yolo and showcased that yolo_loss could be decreased and also showcased that all the decoders can also be trained simultaneoulsy. For yolo I have used the loss function used in stock yolov3 for depth a SSIM(structural similarity index measure) and MSE as loss. 
 
 I have used tensorboard to log the training and here is the yolo_loss for the above training: 
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_loss.svg "yolo_training")
+
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_loss.svg" height="400" width="400">
 
 fork_loss for the same training instance: 
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg "yolo_training")
+
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg" height="400" width="400">
 
 ## Learnings: 
 
@@ -88,3 +90,7 @@ train_fork.py and test.py|Train and evaluaton of the model during Training|
 utils_yolo| All the util functions like parsing and loading data e.t.c to run DarknetV3(yolov3) model|
 blocks.py| utility functions for building Depth decoder|
 depth_loss|SSIM function for evaluation for depth loss|
+
+
+## Model Inference
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_final_inference.PNG" height="400" width="400">
