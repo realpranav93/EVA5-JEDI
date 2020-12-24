@@ -18,7 +18,7 @@ Here is the Overall Architecture:
 <img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_model_architecture.png" height="300" width="700">
 
 
-**Encoder:** 
+#### Encoder:
 Though YoloV3 had darknet a form of densenet as its encoder, it is replaced by pre-trained resnext101 as encoder. It takes a image(img_size) and gives the following output: 
 resolution of ouputs:
 1. EC1: img_size/4
@@ -26,22 +26,26 @@ resolution of ouputs:
 3. EC3: img_size/16
 4. EC_out: img_size/32
 
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/resnext101_encoder.PNG "Encoder")
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/resnext101_encoder.PNG" height="700" width="700">
 
-**Depth Decoder:**
+#### Depth Decoder:
 As showcased in the below diagram outputs EC1, EC2, EC3, EC_out are passed into the decoder where they are connected to the respective upsampled blocks called feature fusion blocks through scratch layer. Feature fusion blocks are used to bring the resolution of the ouputs to the input resolution. 
 ouput: [batch_size, img_size, img_size]
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/depth_decoder.PNG "Depth decoder")
 
-**Yolo Decoder:**
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/depth_decoder.PNG" height="700" width="700">
+
+#### Yolo Decoder:
 Yolo decoder has three ouputs which are of the resolution of img_size/32, img_size/16, img_size/8 and are predicted at an anchor box and channel level which in this case is 9, 3 respectively. Inputs from Encoder are connected to yolo_decoder through 1 bottleneck convolution layer.
 
 Inputs of yolo_decoder: EC2, EC3, EC_out 
 ouputs of yolo_decoder: [batch_size, 3, img_size/32,img_size/32, 9], [batch_size, 3, img_size/16,img_size/16, 9], [batch_size, 3, img_size/8,img_size/8, 9]
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_decoder.PNG "Depth decoder")
+
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_decoder.PNG" height="700" width="700">
+
 
 Below figure showcases the internals of a individual(img_size/32) which in bottom to top order is a bottle neck followed by a path section(to be passed into a img_size/16 after upsampling) and tail section(which would be passed into a yolo_layer)
-![image](https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_path_tail.PNG "Depth decoder")
+
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_path_tail.PNG" height="700" width="700">
 
 ### Training: 
 
