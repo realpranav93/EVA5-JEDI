@@ -76,10 +76,10 @@ In this [notebook](https://colab.research.google.com/drive/14btTA0vYLYuvxlaI3yHU
 I have used tensorboard to log the training.
 
 #### yololoss
-<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_loss.svg" height="400" width="400">
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/yolo_loss.PNG" height="400" width="400">
 
 #### fork_loss 
-<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss%20_final.svg" height="400" width="400">
+<img src="https://github.com/realpranav93/EVA5-JEDI/blob/master/Captsone_EVA5/images/fork_loss.PNG" height="400" width="400">
 
 ## Learnings: 
 
